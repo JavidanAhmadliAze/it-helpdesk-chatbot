@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+langchain
+langchain-community
+huggingface_hub
+python-dotenv
+jinja2
+
