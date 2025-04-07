@@ -1,0 +1,14 @@
+Q: How do I reset my Wi-Fi password?
+A: To reset your Wi-Fi password, you need to access your router's settings. Open a web browser and enter your router’s IP address (usually 192.168.1.1 or 192.168.0.1). Log in with your credentials, then navigate to the wireless settings where you can change your password.
+
+Q: How can I troubleshoot slow internet?
+A: First, check your router’s lights to make sure it’s working properly. You can also try rebooting your router or running a speed test on your computer to verify the internet speed. If it’s slow, check with your ISP for potential outages or plan limitations.
+
+Q: How do I install Zoom on my computer?
+A: To install Zoom, go to the Zoom website (zoom.us) and download the latest version of Zoom for your operating system. After the download is complete, run the installer and follow the on-screen instructions.
+
+Q: What is the difference between a router and a modem?
+A: A modem connects your home network to your Internet Service Provider (ISP), while a router allows multiple devices to access the internet by sharing that connection. A router also helps to manage your local network.
+
+Q: How do I configure a VPN on my system?
+A: To configure a VPN, you need a VPN client. Many companies provide VPN software that you can download and install. Alternatively, you can configure a VPN manually by going into the network settings of your operating system and entering the required server, username, and password details provided by your VPN service.
