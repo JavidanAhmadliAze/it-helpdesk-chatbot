@@ -1,4 +1,3 @@
-# chatbot.py
 
 from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -45,8 +44,8 @@ def log_new_qa_to_faq(question: str, answer: str):
     with open("faq.txt", "a", encoding="utf-8") as faq_file:
         faq_file.write(f"Q: {question}\nA: {answer}\n\n")
 
-
-def is_it_related(query: str, threshold: float = 0.2) -> bool:
+ # classification to calculate content of query
+def is_it_related(query: str) -> bool:
     query_emb = embeddings.embed_query(query)
 
     sim_it = cosine_similarity([query_emb], IT_EMBEDDINGS).flatten()
@@ -57,14 +56,14 @@ def is_it_related(query: str, threshold: float = 0.2) -> bool:
 
     print(f"[DEBUG] IT score: {avg_it:.2f} | NON-IT score: {avg_non_it:.2f}")
 
-    return avg_it > avg_non_it and avg_it > threshold
+    return avg_it > avg_non_it
 
-# Core chatbot logic
+
 def get_bot_response(user_input: str) -> str:
     if not is_it_related(user_input):
         return "Please ask an IT-related question."
 
-    # Step 1: Try to get answer from FAQ only if relevant
+   # Get answer from FAQ if it match
     retriever_results = retriever.get_relevant_documents(user_input)
     if retriever_results:
         top_doc = retriever_results[0]
@@ -73,12 +72,12 @@ def get_bot_response(user_input: str) -> str:
 
         print(f"[DEBUG] FAQ similarity score: {doc_score:.2f}")
 
-        if doc_score > 0.7:  # Tune this threshold as needed
+        if doc_score > 0.7:
             if "A:" in top_doc.page_content:
                 return top_doc.page_content.split("A:")[1].split("Q:")[0].strip()
             return top_doc.page_content
 
-    # Step 2: Fallback to LLM (IT-related but not in FAQ)
+    # if not in FAQ use LLM
     try:
         result = subprocess.run(
             ["ollama", "run", "phi:latest"],
@@ -93,5 +92,4 @@ def get_bot_response(user_input: str) -> str:
     except subprocess.CalledProcessError as e:
         print(f"Error during Ollama CLI execution: {e}")
         return "Sorry, I couldn't process your request at the moment."
-
 
