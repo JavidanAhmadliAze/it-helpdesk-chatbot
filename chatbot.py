@@ -38,10 +38,8 @@ NON_IT_EXAMPLES = [
     "What’s the capital of France?"
 ]
 
-GENERAL_ALLOWED = ["hey", "hello", "hi", "thanks", "bye","greetings"]
 
-def is_general_query(query: str) -> bool:
-    return query.strip().lower() in GENERAL_ALLOWED
+
 
 
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
@@ -74,8 +72,14 @@ def is_it_related(query: str) -> bool:
 
 
 def get_bot_response(user_input: str) -> str:
-    if not is_it_related(user_input) and not is_general_query(user_input):
+    welcome_intents = {"hello", "hi", "hey", "good morning", "good afternoon", "good evening"}
+
+    if user_input.strip().lower() in welcome_intents:
+        return "I am IT Helpdesk chatbot, how can I help you?"
+
+    if not is_it_related(user_input):
         return "Please ask an IT-related question."
+
 
     retriever_results = retriever.get_relevant_documents(user_input)
     if retriever_results:
