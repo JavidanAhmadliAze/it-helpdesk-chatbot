@@ -1,6 +1,9 @@
 
 from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains import ConversationChain
+from langchain.memory import ConversationBufferMemory
+from langchain.llms import Ollama
 from langchain_community.vectorstores import FAISS
 import subprocess
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -13,6 +16,11 @@ documents = loader.load()
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 docs = text_splitter.split_documents(documents)
+
+memory = ConversationBufferMemory()
+llm = Ollama(model="phi:latest")
+conversation = ConversationChain(llm=llm, memory=memory)
+
 
 IT_EXAMPLES = [
     "How can I fix slow internet?",
@@ -29,6 +37,12 @@ NON_IT_EXAMPLES = [
     "Tell me a joke.",
     "What’s the capital of France?"
 ]
+
+GENERAL_ALLOWED = ["hey", "hello", "hi", "thanks", "bye","greetings"]
+
+def is_general_query(query: str) -> bool:
+    return query.strip().lower() in GENERAL_ALLOWED
+
 
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 IT_EMBEDDINGS = embeddings.embed_documents(IT_EXAMPLES)
@@ -60,10 +74,9 @@ def is_it_related(query: str) -> bool:
 
 
 def get_bot_response(user_input: str) -> str:
-    if not is_it_related(user_input):
+    if not is_it_related(user_input) and not is_general_query(user_input):
         return "Please ask an IT-related question."
 
-   # Get answer from FAQ if it match
     retriever_results = retriever.get_relevant_documents(user_input)
     if retriever_results:
         top_doc = retriever_results[0]
@@ -77,19 +90,13 @@ def get_bot_response(user_input: str) -> str:
                 return top_doc.page_content.split("A:")[1].split("Q:")[0].strip()
             return top_doc.page_content
 
-    # if not in FAQ use LLM
+    # If not found in FAQ, use LLM + memory
     try:
-        result = subprocess.run(
-            ["ollama", "run", "phi:latest"],
-            input=user_input,
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        bot_reply = result.stdout.strip()
-        log_new_qa_to_faq(user_input, bot_reply)
-        return bot_reply
-    except subprocess.CalledProcessError as e:
-        print(f"Error during Ollama CLI execution: {e}")
+        response = conversation.run(user_input)
+        log_new_qa_to_faq(user_input, response)
+        return response
+    except Exception as e:
+        print(f"Error during LLM response: {e}")
         return "Sorry, I couldn't process your request at the moment."
+
 
