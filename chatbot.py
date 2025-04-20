@@ -1,21 +1,22 @@
-
-from langchain_community.document_loaders import TextLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain.llms import Ollama
 from langchain_community.vectorstores import FAISS
-import subprocess
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+from langchain.schema import Document
 
 # Load and embed FAQ data
-loader = TextLoader("faq.txt", encoding="utf-8")
-documents = loader.load()
+qa_pairs = []
+with open("faq.txt", encoding="utf-8") as f:
+    lines = f.read().split("Q:")
+    for entry in lines[1:]:
+        if "A:" in entry:
+            q_part, a_part = entry.split("A:")
+            qa_text = f"Q: {q_part.strip()}\nA: {a_part.strip()}"
+            qa_pairs.append(Document(page_content=qa_text))
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-docs = text_splitter.split_documents(documents)
 
 memory = ConversationBufferMemory()
 llm = Ollama(model="phi:latest")
@@ -45,7 +46,7 @@ NON_IT_EXAMPLES = [
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 IT_EMBEDDINGS = embeddings.embed_documents(IT_EXAMPLES)
 NON_IT_EMBEDDINGS = embeddings.embed_documents(NON_IT_EXAMPLES)
-vectorstore = FAISS.from_documents(docs, embeddings)
+vectorstore = FAISS.from_documents(qa_pairs, embeddings)
 retriever = vectorstore.as_retriever()
 
 
@@ -75,7 +76,7 @@ def get_bot_response(user_input: str) -> str:
     welcome_intents = {"hello", "hi", "hey", "good morning", "good afternoon", "good evening"}
 
     if user_input.strip().lower() in welcome_intents:
-        return "I am IT Helpdesk chatbot, how can I help you?"
+        return "Hi,I am IT Helpdesk chatbot, how can I help you?"
 
     if not is_it_related(user_input):
         return "Please ask an IT-related question."
@@ -89,10 +90,12 @@ def get_bot_response(user_input: str) -> str:
 
         print(f"[DEBUG] FAQ similarity score: {doc_score:.2f}")
 
-        if doc_score > 0.7:
+        if doc_score > 0.5:
             if "A:" in top_doc.page_content:
                 return top_doc.page_content.split("A:")[1].split("Q:")[0].strip()
             return top_doc.page_content
+
+
 
     # If not found in FAQ, use LLM + memory
     try:
